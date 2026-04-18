@@ -8,11 +8,13 @@ export const Private = () => {
         const token = sessionStorage.getItem("token");
 
         if (!token) {
-            navigate("/login");
+            navigate("/");
             return;
         }
 
-        fetch("https://studious-broccoli-v66rwgp4jrqr2x55w-3001.app.github.dev/private", {
+        const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+        fetch(`${baseUrl}/private`, {
             headers: { Authorization: `Bearer ${token}` }
         }).then(res => {
             if (!res.ok) navigate("/login");
