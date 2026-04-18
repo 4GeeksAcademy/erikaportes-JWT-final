@@ -1,52 +1,100 @@
-import React, { useEffect } from "react"
-import rigoImageUrl from "../assets/img/rigo-baby.jpg";
-import useGlobalReducer from "../hooks/useGlobalReducer.jsx";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const Home = () => {
+	const navigate = useNavigate();
 
-	const { store, dispatch } = useGlobalReducer()
+	const [isLogin, setIsLogin] = useState(true); // toggle
+	const [form, setForm] = useState({
+		email: "",
+		password: ""
+	});
 
-	const loadMessage = async () => {
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		const endpoint = isLogin ? "login" : "signup";
+
+		// Usamos import.meta.env para no escribir la URL a mano
+		const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
 		try {
-			const backendUrl = import.meta.env.VITE_BACKEND_URL
+			const resp = await fetch(`${baseUrl}/${endpoint}`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify(form)
+			});
 
-			if (!backendUrl) throw new Error("VITE_BACKEND_URL is not defined in .env file")
+			const data = await resp.json();
 
-			const response = await fetch(backendUrl + "/api/hello")
-			const data = await response.json()
-
-			if (response.ok) dispatch({ type: "set_hello", payload: data.message })
-
-			return data
-
+			if (resp.ok) {
+				if (isLogin) {
+					sessionStorage.setItem("token", data.token);
+					navigate("/private");
+				} else {
+					alert("Registro exitoso, ahora inicia sesión");
+					setIsLogin(true);
+				}
+			} else {
+				alert(data.msg || "Ocurrió un error");
+			}
 		} catch (error) {
-			if (error.message) throw new Error(
-				`Could not fetch the message from the backend.
-				Please check if the backend is running and the backend port is public.`
-			);
+			console.error("Error en la conexión", error);
 		}
-
-	}
-
-	useEffect(() => {
-		loadMessage()
-	}, [])
+	};
 
 	return (
-		<div className="text-center mt-5">
-			<h1 className="display-4">Hello Rigo!!</h1>
-			<p className="lead">
-				<img src={rigoImageUrl} className="img-fluid rounded-circle mb-3" alt="Rigo Baby" />
-			</p>
-			<div className="alert alert-info">
-				{store.message ? (
-					<span>{store.message}</span>
-				) : (
-					<span className="text-danger">
-						Loading message from the backend (make sure your python 🐍 backend is running)...
-					</span>
-				)}
+		<div className="container mt-5">
+			<div className="card pt-4 pb-4 shadow w-50 mx-auto">
+				<h2 className="text-center mb-4">
+					{isLogin ? "Iniciar Sesión" : "Registrarse"}
+				</h2>
+
+				<form onSubmit={handleSubmit}>
+					<input
+						type="email"
+						placeholder="Correo"
+						className="form-control mb-3 w-50 mx-auto"
+						onChange={e => setForm({ ...form, email: e.target.value })}
+					/>
+
+					<input
+						type="password"
+						placeholder="Contraseña"
+						className="form-control mb-3 w-50 mx-auto"
+						onChange={e => setForm({ ...form, password: e.target.value })}
+					/>
+					<div className="d-flex justify-content-center">
+						<button className="btn btn-dark w-50">
+							{isLogin ? "Entrar" : "Registrarme"}
+						</button>
+					</div>
+
+				</form>
+
+				<div className="text-center mt-3">
+					{isLogin ? (
+						<p>
+							¿No tienes cuenta?{" "}
+							<span
+								style={{ cursor: "pointer", color: "blue" }}
+								onClick={() => setIsLogin(false)}
+							>
+								Regístrate
+							</span>
+						</p>
+					) : (
+						<p>
+							¿Ya tienes cuenta?{" "}
+							<span
+								style={{ cursor: "pointer", color: "blue" }}
+								onClick={() => setIsLogin(true)}
+							>
+								Inicia sesión
+							</span>
+						</p>
+					)}
+				</div>
 			</div>
 		</div>
 	);
-}; 
+};
